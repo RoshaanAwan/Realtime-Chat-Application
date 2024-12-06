@@ -111,7 +111,7 @@ const LoginPage = () => {
               </p>
             </div>
           </div>
-        </div>
+        </div>  
       </div>
 
       {/* Right Side */}
