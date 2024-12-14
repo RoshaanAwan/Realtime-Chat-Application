@@ -1,44 +1,67 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
 import ChatHeader from './ChatHeader';
 import MessagesInput from './MessagesInput';
 import { formatMessageTime } from '../lib/utilis';
+import MessageSkeleton from './skeletons/MessageSkeleton';
 
 const ChatContainer = () => {
     const { authUser } = useAuthStore();
-    const messageEndRef = useRef(null)
-    const { messages, getMessages, isMessageLoading, selectedUser, subscribeToMessages, unsubscribeToMessages } = useChatStore();
+    const messageEndRef = useRef(null);
+    const { messages, getMessages, isMessagesLoading, selectedUser, subscribeToMessages, unsubscribeToMessages } = useChatStore();
 
+    const [isScrolledToBottom, setIsScrolledToBottom] = useState(true); // Track if user is at the bottom
+
+    // Get messages and subscribe to new messages
     useEffect(() => {
-        getMessages(selectedUser._id)
+        if (selectedUser?._id) {
+            getMessages(selectedUser._id);
+            subscribeToMessages();
+        }
 
-        subscribeToMessages()
-
-
-        return () => unsubscribeToMessages()
-
+        return () => {
+            unsubscribeToMessages();
+        };
     }, [selectedUser?._id, getMessages, unsubscribeToMessages, subscribeToMessages]);
 
-
+    // Scroll to bottom when messages change
     useEffect(() => {
         if (messageEndRef.current && messages) {
-
-            messageEndRef.current.scrollIntoView({ behaviour: "smooth" })
+            messageEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [messages])
+    }, [messages]);
 
-    if (isMessageLoading) return <div>Loading...</div>;
+    const handleScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        // Check if the user is at the bottom of the messages container
+        if (scrollHeight - scrollTop === clientHeight) {
+            setIsScrolledToBottom(true);
+        } else {
+            setIsScrolledToBottom(false);
+        }
+    };
+
+    if (isMessagesLoading) {
+        return (
+            <div className="flex-1 flex flex-col overflow-auto">
+                <ChatHeader />
+                <MessageSkeleton />
+                <MessagesInput />
+            </div>
+        );
+    }
 
     return (
         <div className='flex-1 flex flex-col overflow-auto'>
             <ChatHeader />
 
-            <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+            <div
+                className='flex-1 overflow-y-auto p-4 space-y-4'
+                onScroll={handleScroll}
+            >
                 {messages.map((message) => (
-                    <div key={message._id} className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}
-                        ref={messageEndRef}
-                    >
+                    <div key={message._id} className={`chat ${message.senderId === authUser._id ? "chat-end" : "chat-start"}`}>
                         <div className="chat-image avatar">
                             <div className="size-10 rounded-full border">
                                 <img
@@ -65,6 +88,9 @@ const ChatContainer = () => {
                         </div>
                     </div>
                 ))}
+
+                {/* This div ensures we always scroll to the bottom when new messages arrive */}
+                <div ref={messageEndRef}></div>
             </div>
 
             <MessagesInput />

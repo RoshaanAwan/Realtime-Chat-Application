@@ -1,7 +1,5 @@
 import { create } from "zustand";
-
 import toast from "react-hot-toast";
-
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 
@@ -43,7 +41,12 @@ export const useChatStore = create((set, get) => ({
         `/messages/send/${selectedUser._id}`,
         messageData
       );
+      // Update local messages immediately after sending
       set({ messages: [...messages, res.data] });
+
+      // Emit the new message using socket (for real-time update)
+      const socket = useAuthStore.getState().socket;
+      socket.emit("sendMessage", res.data); // Assuming 'sendMessage' event is configured on the server
     } catch (error) {
       toast.error(error.response.data.message);
     }
@@ -56,14 +59,16 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
 
     socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser=newMessage.sendId!==selectedUser._id
+      const isMessageSentFromSelectedUser =
+        newMessage.senderId !== selectedUser._id;
 
-      if(isMessageSentFromSelectedUser) return;
+      if (isMessageSentFromSelectedUser) return;
       set({
         messages: [...get().messages, newMessage],
       });
     });
   },
+
   unsubscribeToMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
