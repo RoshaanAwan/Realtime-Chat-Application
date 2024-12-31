@@ -19,8 +19,8 @@ app.use(express.urlencoded({ limit: "10mb", extended: true })); // Handle URL-en
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Frontend origin
-    credentials: true, // Include credentials (cookies, authorization headers)
+    origin: "https://realtime-chat-application-yflw.vercel.app/", 
+    credentials: true, 
   })
 );
 
